@@ -66,9 +66,10 @@
 	                           : move_pairs.slice(0, Math.ceil(last_move_ix/2)+1 );
 
 	function openOnLichess() {
-		let movesForUrl = line.map( m => m.moveSan).join('_');
+		let movesForUrl = line.map( m => m.moveSan ).join('_');
 		let color = line[start_move_ix].ownMove ? 'white' : 'black';
-		let url = `https://lichess.org/analysis/pgn/${movesForUrl}?color=${color}#${start_move_ix}`;
+		let ply = color === 'white' && last_move_ix === -1 ? 0 : last_move_ix + 2;
+		let url = `https://lichess.org/analysis/pgn/${movesForUrl}?color=${color}#${ply}`;
 		window.open(url);
 	};
 
