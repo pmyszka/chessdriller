@@ -65,6 +65,12 @@
 	$: move_pairs_to_display = !line || last_move_ix == -1 && line[0].ownMove ? []
 	                           : move_pairs.slice(0, Math.ceil(last_move_ix/2)+1 );
 
+	function openOnLichess() {
+		let movesForUrl = line.map( m => m.moveSan).join('_');
+		let color = line[start_move_ix].ownMove ? 'white' : 'black';
+		let url = `https://lichess.org/analysis/pgn/${movesForUrl}?color=${color}#${start_move_ix}`;
+		window.open(url);
+	};
 
 	let nextline_promise: Promise<void>;
 	async function studyNextLine( last_line_move_ids: number[] = [] ) {
@@ -254,6 +260,18 @@
 							on:click|once={()=>studyNextLine(line.map(m=>m.id))}
 						>Skip to end</button>
 					{/if}
+					
+					<div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+						<button 
+							class="cdbutton analyze_external"
+							title="Analyze on Lichess"
+							on:click={openOnLichess}
+						>Lichess
+						<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+							<path fill="none" stroke="#800020" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+						</svg>
+						</button>
+					</div>
 				</div>
 			{/if}
 		</div>
@@ -308,5 +326,15 @@
 	}
 	.skip_to_end {
 		right:0;
+	}
+	/* TODO fix positioning when skip-to-end button is active */
+	.analyze_external{
+		color: #800020;
+		border:none;
+		display:flex;
+		align-items:center;
+		margin-top: 6px;
+		gap: 6px;
+		background-color: transparent;
 	}
 </style>
