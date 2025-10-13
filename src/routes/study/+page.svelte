@@ -65,6 +65,10 @@
 	$: move_pairs_to_display = !line || last_move_ix == -1 && line[0].ownMove ? []
 	                           : move_pairs.slice(0, Math.ceil(last_move_ix/2)+1 );
 
+	function showPreviousPosition() {
+		// TODO
+	}
+
 	function openOnLichess() {
 		let movesForUrl = line.map( m => m.moveSan ).join('_');
 		let color = line[start_move_ix].ownMove ? 'white' : 'black';
@@ -246,23 +250,35 @@
 						{/await}
 					</div>
 					<StudyBoard {line} {start_move_ix} on:move={onMove} on:lineFinished={lineFinished} bind:this={studyBoard} />
-					{#if num_wrongs_this_move >= 2 }
-						<button
-							class="cdbutton show_answer"
-							title="Show the right move"
-							transition:fade on:click={()=>{studyBoard.showAnswer()}} 
-						>Show answer</button>
-					{/if}
-					{#if line && line.slice(last_move_ix+1).length > 0 && last_move_ix >= Math.max(...due_ix)}
-						<button 
-							class="cdbutton skip_to_end"
-							title="All due moves are reviewed, skip the end of this line"
-							transition:fade
-							on:click|once={()=>studyNextLine(line.map(m=>m.id))}
-						>Skip to end</button>
-					{/if}
 					
-					<div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+					<div style="display: flex; justify-content: space-between; margin-top: 12px;">
+						<button 
+							class="cdbutton prev_position"
+							title="Show previous position"
+							on:click={showPreviousPosition}
+						>
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+							<path fill="currentColor" d="M11.53 6.47a.75.75 0 0 1 0 1.06l-3.72 3.72H18a.75.75 0 0 1 0 1.5H7.81l3.72 3.72a.75.75 0 1 1-1.06 1.06l-5-5a.75.75 0 0 1 0-1.06l5-5a.75.75 0 0 1 1.06 0"/>
+						</svg>
+						Back
+						</button>
+
+						{#if num_wrongs_this_move >= 2 }
+							<button
+								class="cdbutton show_answer"
+								title="Show the right move"
+								transition:fade on:click={()=>{studyBoard.showAnswer()}} 
+							>Show answer</button>
+						{/if}
+						{#if line && line.slice(last_move_ix+1).length > 0 && last_move_ix >= Math.max(...due_ix)}
+							<button 
+								class="cdbutton skip_to_end"
+								title="All due moves are reviewed, skip the end of this line"
+								transition:fade
+								on:click|once={()=>studyNextLine(line.map(m=>m.id))}
+							>Skip to end</button>
+						{/if}
+						
 						<button 
 							class="cdbutton analyze_external"
 							title="Analyze on Lichess"
@@ -317,25 +333,13 @@
 	.branch_text {
 		text-align:center;
 	}
-
-	.show_answer, .skip_to_end {
-		position:absolute;
-		margin-top:6px;
-	}
-	.show_answer {
-		left:0;
-	}
-	.skip_to_end {
-		right:0;
-	}
-	/* TODO fix positioning when skip-to-end button is active */
-	.analyze_external{
+	.prev_position, .analyze_external{
 		color: #800020;
 		border:none;
 		display:flex;
 		align-items:center;
-		margin-top: 6px;
-		gap: 6px;
+		gap: 4px;
 		background-color: transparent;
+		padding-inline: 0;
 	}
 </style>
