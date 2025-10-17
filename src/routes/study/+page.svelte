@@ -52,6 +52,8 @@
 	let due_ix: number[] = [];
 	let line_source_name: string | null = null;
 
+	let lastPosition: {line: Move[], move_ix: number, visible: boolean} = {line: [], move_ix: 0, visible: false};
+
 
 	// MoveSheet logic: TODO move pair_moves and move_pairs* into lib/MoveSheet.svelte (and simplify)
 	function pair_moves( line: Move[] ) {
@@ -65,8 +67,20 @@
 	$: move_pairs_to_display = !line || last_move_ix == -1 && line[0].ownMove ? []
 	                           : move_pairs.slice(0, Math.ceil(last_move_ix/2)+1 );
 
-	function showPreviousPosition() {
-		// TODO
+	function togglePreviousPosition() {
+		let board_line = line;
+		let board_move_ix = last_move_ix;
+
+		line = lastPosition.line;
+		start_move_ix = lastPosition.move_ix;
+
+		lastPosition.visible = !lastPosition.visible;
+		lastPosition.line = board_line;
+		lastPosition.move_ix = board_move_ix;
+
+		console.log('line: ', line);
+		console.log('start_move_ix: ', start_move_ix);
+		console.log('lastPosition: ', lastPosition);
 	}
 
 	function openOnLichess() {
@@ -115,9 +129,14 @@
 
 	async function onMove(e: MoveEvent) {
 		if ( e.detail.result === 'correct' ) {
+			console.log('lastPosition: ', lastPosition);
+
 			last_move_ix = e.detail.move_ix;
 			num_wrongs_this_move = 0;
 			played_branches.clear();
+
+			lastPosition.line = line;
+			lastPosition.move_ix = last_move_ix - 1;
 		} else if ( e.detail.result === 'branch' ) {
 			played_branches.add( e.detail.guess );
 		} else if ( e.detail.result === 'wrong' ) {
@@ -252,16 +271,19 @@
 					<StudyBoard {line} {start_move_ix} on:move={onMove} on:lineFinished={lineFinished} bind:this={studyBoard} />
 					
 					<div style="display: flex; justify-content: space-between; margin-top: 12px;">
-						<button 
-							class="cdbutton prev_position"
-							title="Show previous position"
-							on:click={showPreviousPosition}
-						>
-						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-							<path fill="currentColor" d="M11.53 6.47a.75.75 0 0 1 0 1.06l-3.72 3.72H18a.75.75 0 0 1 0 1.5H7.81l3.72 3.72a.75.75 0 1 1-1.06 1.06l-5-5a.75.75 0 0 1 0-1.06l5-5a.75.75 0 0 1 1.06 0"/>
-						</svg>
-						Back
-						</button>
+						{#if lastPosition.line.length > 0 }
+							<button 
+								class="cdbutton prev_position"
+								title="Show previous position"
+								on:click={togglePreviousPosition}
+							>
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" class={"last-position" + (lastPosition.visible ? " inverted" : "")}>
+								<path fill="currentColor" d="M11.53 6.47a.75.75 0 0 1 0 1.06l-3.72 3.72H18a.75.75 0 0 1 0 1.5H7.81l3.72 3.72a.75.75 0 1 1-1.06 1.06l-5-5a.75.75 0 0 1 0-1.06l5-5a.75.75 0 0 1 1.06 0"/>
+							</svg>
+							{#if !lastPosition.visible}Back{/if}
+							{#if lastPosition.visible}Forward{/if}
+							</button>
+						{/if}
 
 						{#if num_wrongs_this_move >= 2 }
 							<button
@@ -341,5 +363,16 @@
 		gap: 4px;
 		background-color: transparent;
 		padding-inline: 0;
+	}
+	.cdbutton:only-child {
+		margin-left: auto;
+	}
+	.inverted {
+		transform: rotate(180deg);
+		transform-origin: center;
+	}
+	.last-position {
+		transition: transform 220ms cubic-bezier(.2,.8,.2,1);
+		will-change: transform;
 	}
 </style>
