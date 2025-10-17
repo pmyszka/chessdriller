@@ -37,7 +37,7 @@
 	// Board from Chessground
 	let chessground: ChessgroundUnstyled;
 	const config = {
-		premovable: { enabled: false },
+		premovable: { enabled: true },		// maybe enable this? delay can be annoying if user already knows computer line
 		coordinates: false,
 	};
 
