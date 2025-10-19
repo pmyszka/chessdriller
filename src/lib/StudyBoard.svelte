@@ -13,7 +13,7 @@
 
 	import { createEventDispatcher } from 'svelte';
 	import { Move as PrismaMove } from '@prisma/client';
-  import { MoveWithPossibleBranches } from './scheduler';
+  	import type { MoveWithPossibleBranches } from './scheduler';
 	const dispatch = createEventDispatcher();
 
 	const Delay_before_opponent_move = 250;
