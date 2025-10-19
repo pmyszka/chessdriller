@@ -102,7 +102,6 @@
 		.then( (res) => res.json() )
 		.then( (data) => {
 			if ( data.num_due_moves > 0 ) {
-				console.log('new line: ', data.line);
 				line = data.line;
 				due_ix = data.due_ix;
 				start_move_ix = data.start_ix;
@@ -132,11 +131,7 @@
 	let last_fetchmove_promise: Promise<void>;
 
 	async function onMove(e: MoveEvent) {
-		console.log(e.detail);
-		console.log('lastPosition: ', lastPosition);
-
 		if ( e.detail.result === 'correct' ) {
-
 			last_move_ix = e.detail.move_ix;
 			num_wrongs_this_move = 0;
 			played_branches.clear();
