@@ -52,8 +52,7 @@
 	let due_ix: number[] = [];
 	let line_source_name: string | null = null;
 
-	let lastPosition: {line: Move[], move_ix: number, visible: boolean} = {line: [], move_ix: 0, visible: false};
-
+	let lastPosition: {line: Move[], lastMoveIx: number, show: boolean} = {line: [], lastMoveIx: -1, show: false};
 
 	// MoveSheet logic: TODO move pair_moves and move_pairs* into lib/MoveSheet.svelte (and simplify)
 	function pair_moves( line: Move[] ) {
@@ -68,25 +67,27 @@
 	                           : move_pairs.slice(0, Math.ceil(last_move_ix/2)+1 );
 
 	function togglePreviousPosition() {
-		let board_line = line;
-		let board_move_ix = last_move_ix;
-
+		const tempLine = line;
 		line = lastPosition.line;
-		start_move_ix = lastPosition.move_ix;
+		lastPosition.line = tempLine; 
 
-		lastPosition.visible = !lastPosition.visible;
-		lastPosition.line = board_line;
-		lastPosition.move_ix = board_move_ix;
+		lastPosition.show = !lastPosition.show;
 
-		console.log('line: ', line);
-		console.log('start_move_ix: ', start_move_ix);
-		console.log('lastPosition: ', lastPosition);
+		if (lastPosition.show) {
+			studyBoard.setViewOnly(true);
+			start_move_ix = lastPosition.lastMoveIx;
+		} else {
+			studyBoard.setViewOnly(false);
+			start_move_ix = last_move_ix + 1;
+		}
+
+		console.log('start_move_ix: ', start_move_ix);;
 	}
 
 	function openOnLichess() {
 		let movesForUrl = line.map( m => m.moveSan ).join('_');
 		let color = line[start_move_ix].ownMove ? 'white' : 'black';
-		let ply = color === 'white' && last_move_ix === -1 ? 0 : last_move_ix + 2;
+		let ply = color === 'white' && lastPosition.lastMoveIx === -1 ? 0 : lastPosition.lastMoveIx + 2;
 		let url = `https://lichess.org/analysis/pgn/${movesForUrl}?color=${color}#${ply}`;
 		window.open(url);
 	};
@@ -99,6 +100,7 @@
 		.then( (res) => res.json() )
 		.then( (data) => {
 			if ( data.num_due_moves > 0 ) {
+				console.log('new line: ', data.line);
 				line = data.line;
 				due_ix = data.due_ix;
 				start_move_ix = data.start_ix;
@@ -128,15 +130,17 @@
 	let last_fetchmove_promise: Promise<void>;
 
 	async function onMove(e: MoveEvent) {
+		console.log(e.detail);
+
 		if ( e.detail.result === 'correct' ) {
-			console.log('lastPosition: ', lastPosition);
+			// console.log('lastPosition: ', lastPosition);
 
 			last_move_ix = e.detail.move_ix;
 			num_wrongs_this_move = 0;
 			played_branches.clear();
 
 			lastPosition.line = line;
-			lastPosition.move_ix = last_move_ix - 1;
+			lastPosition.lastMoveIx = e.detail.move_ix;
 		} else if ( e.detail.result === 'branch' ) {
 			played_branches.add( e.detail.guess );
 		} else if ( e.detail.result === 'wrong' ) {
@@ -271,17 +275,17 @@
 					<StudyBoard {line} {start_move_ix} on:move={onMove} on:lineFinished={lineFinished} bind:this={studyBoard} />
 					
 					<div style="display: flex; justify-content: space-between; margin-top: 12px;">
-						{#if lastPosition.line.length > 0 }
+						{#if lastPosition.line.length > 0}
 							<button 
 								class="cdbutton prev_position"
 								title="Show previous position"
 								on:click={togglePreviousPosition}
 							>
-							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" class={"last-position" + (lastPosition.visible ? " inverted" : "")}>
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" class={"last-position" + (lastPosition.show ? " inverted" : "")}>
 								<path fill="currentColor" d="M11.53 6.47a.75.75 0 0 1 0 1.06l-3.72 3.72H18a.75.75 0 0 1 0 1.5H7.81l3.72 3.72a.75.75 0 1 1-1.06 1.06l-5-5a.75.75 0 0 1 0-1.06l5-5a.75.75 0 0 1 1.06 0"/>
 							</svg>
-							{#if !lastPosition.visible}Back{/if}
-							{#if lastPosition.visible}Forward{/if}
+							{#if !lastPosition.show}Back{/if}
+							{#if lastPosition.show}Forward{/if}
 							</button>
 						{/if}
 

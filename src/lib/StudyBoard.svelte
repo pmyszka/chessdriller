@@ -39,7 +39,10 @@
 	const config = {
 		premovable: { enabled: true },		// maybe enable this? delay can be annoying if user already knows computer line
 		coordinates: false,
+		viewOnly: false
 	};
+	
+	export const setViewOnly = (isViewOnly: boolean) => config.viewOnly = isViewOnly;
 
 	// Reset board when line is changed
 	$: if ( line && is_mounted ) {
