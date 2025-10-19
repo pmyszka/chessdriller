@@ -38,11 +38,10 @@
 	let chessground: ChessgroundUnstyled;
 	const config = {
 		premovable: { enabled: true },		// maybe enable this? delay can be annoying if user already knows computer line
-		coordinates: false,
-		viewOnly: false
+		coordinates: false
 	};
-	
-	export const setViewOnly = (isViewOnly: boolean) => config.viewOnly = isViewOnly;
+
+	export const setViewOnly = (isViewOnly?: boolean) => chessground.set({ viewOnly: isViewOnly ?? true});
 
 	// Reset board when line is changed
 	$: if ( line && is_mounted ) {

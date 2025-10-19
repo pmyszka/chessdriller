@@ -52,7 +52,7 @@
 	let due_ix: number[] = [];
 	let line_source_name: string | null = null;
 
-	let lastPosition: {line: Move[], lastMoveIx: number, show: boolean} = {line: [], lastMoveIx: -1, show: false};
+	let lastPosition: {line: Move[], moveIx: number, show: boolean} = {line: [], moveIx: -1, show: false};
 
 	// MoveSheet logic: TODO move pair_moves and move_pairs* into lib/MoveSheet.svelte (and simplify)
 	function pair_moves( line: Move[] ) {
@@ -71,23 +71,25 @@
 		line = lastPosition.line;
 		lastPosition.line = tempLine; 
 
-		lastPosition.show = !lastPosition.show;
-
-		if (lastPosition.show) {
-			studyBoard.setViewOnly(true);
-			start_move_ix = lastPosition.lastMoveIx;
+		if (!lastPosition.show) {
+			studyBoard.setViewOnly();
+			start_move_ix = lastPosition.moveIx;
+			lastPosition.moveIx = last_move_ix;
+			last_move_ix = Math.max(-1, start_move_ix - 2);
 		} else {
 			studyBoard.setViewOnly(false);
-			start_move_ix = last_move_ix + 1;
+			last_move_ix = lastPosition.moveIx;
+			lastPosition.moveIx = start_move_ix;
+			start_move_ix = last_move_ix === -1 ? last_move_ix + 1 : last_move_ix + 2;
 		}
 
-		console.log('start_move_ix: ', start_move_ix);;
+		lastPosition.show = !lastPosition.show;
 	}
 
 	function openOnLichess() {
 		let movesForUrl = line.map( m => m.moveSan ).join('_');
-		let color = line[start_move_ix].ownMove ? 'white' : 'black';
-		let ply = color === 'white' && lastPosition.lastMoveIx === -1 ? 0 : lastPosition.lastMoveIx + 2;
+		let color = line[0].ownMove ? 'white' : 'black';
+		let ply = color === 'white' && last_move_ix === -1 ? 0 : last_move_ix + 2;
 		let url = `https://lichess.org/analysis/pgn/${movesForUrl}?color=${color}#${ply}`;
 		window.open(url);
 	};
@@ -131,16 +133,16 @@
 
 	async function onMove(e: MoveEvent) {
 		console.log(e.detail);
+		console.log('lastPosition: ', lastPosition);
 
 		if ( e.detail.result === 'correct' ) {
-			// console.log('lastPosition: ', lastPosition);
 
 			last_move_ix = e.detail.move_ix;
 			num_wrongs_this_move = 0;
 			played_branches.clear();
 
 			lastPosition.line = line;
-			lastPosition.lastMoveIx = e.detail.move_ix;
+			lastPosition.moveIx = e.detail.move_ix;
 		} else if ( e.detail.result === 'branch' ) {
 			played_branches.add( e.detail.guess );
 		} else if ( e.detail.result === 'wrong' ) {
