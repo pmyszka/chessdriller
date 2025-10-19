@@ -132,6 +132,9 @@
 	let last_fetchmove_promise: Promise<void>;
 
 	async function onMove(e: MoveEvent) {
+		console.log(e.detail);
+		console.log('lastPosition: ', lastPosition);
+
 		if ( e.detail.result === 'correct' ) {
 
 			last_move_ix = e.detail.move_ix;
