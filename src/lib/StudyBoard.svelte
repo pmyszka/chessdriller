@@ -12,7 +12,7 @@
 	import './chessground-pieces.css';
 
 	import { createEventDispatcher } from 'svelte';
-	import { Move as PrismaMove } from '@prisma/client';
+	import type { Move as PrismaMove } from '@prisma/client';
   	import type { MoveWithPossibleBranches } from './scheduler';
 	const dispatch = createEventDispatcher();
 
