@@ -22,7 +22,10 @@ export async function GET({ url, locals }) {
 	let response = await getLineForStudy( moves, new Date(), lastLine );
 
 	// grab title of move source
-	const finalMoveId = response.line[ response.line.length-1 ].id;
+	const line = response.line
+	if( line.length === 0 ) return json({ success: false, message: 'no line found' });
+
+	const finalMoveId = line[ line.length-1 ].id;
 	const finalMove = await prisma.move.findUniqueOrThrow({
 		where: {id: finalMoveId },
 		select: {
