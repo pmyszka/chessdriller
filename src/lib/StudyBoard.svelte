@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 
 	// TODO event types defined in /src/routes/study/+page.svelte, move
 	// them here when this file is typescriptified
@@ -12,18 +12,20 @@
 	import './chessground-pieces.css';
 
 	import { createEventDispatcher } from 'svelte';
+	import type { Move as PrismaMove } from '@prisma/client';
+  	import type { MoveWithPossibleBranches } from './scheduler';
 	const dispatch = createEventDispatcher();
 
 	const Delay_before_opponent_move = 250;
 	const Delay_before_wrong_move_undo = 250;
 	const Delay_before_branch_undo  = 750;
-	
-	export let line; // line is an array of moves
-	export let start_move_ix; // move index (of line[]) for the first move to show; fast-forward to that one
+	export let line: MoveWithPossibleBranches[]; // line is an array of moves
+	export let start_move_ix: number; // move index (of line[]) for the first move to show; fast-forward to that one
 	let current_move_i = 0;
 	let is_mounted = false;
+	let orientation: 'white' | 'black';
 	$: orientation = line && line[0].ownMove ? 'white' : 'black';
-	let container;
+	let container: HTMLDivElement;
 	
 	export function getOrientation() {
 		return orientation;
@@ -33,11 +35,13 @@
 	const chess = new Chess();
 
 	// Board from Chessground
-	let chessground;
+	let chessground: ChessgroundUnstyled;
 	const config = {
-		premovable: { enabled: false },
-		coordinates: false,
+		premovable: { enabled: true },		// maybe enable this? delay can be annoying if user already knows computer line
+		coordinates: false
 	};
+
+	export const setViewOnly = (isViewOnly?: boolean) => chessground.set({ viewOnly: isViewOnly ?? true});
 
 	// Reset board when line is changed
 	$: if ( line && is_mounted ) {
@@ -94,12 +98,16 @@
 		}
 	}
 
-	function checkMove( orig, dest ) {
+	function checkMove( orig: string, dest: string ) {
 		const chess_move = chess.move( { from: orig, to: dest } );
 		let result;
-		if ( chess_move.san === line[current_move_i].moveSan ) {
+		if ( chess_move && chess_move.san === line[current_move_i].moveSan ) {
 			result = 'correct';
-		} else if ( line[current_move_i].branches && line[current_move_i].branches.some( (m) => m.moveSan === chess_move.san ) ) {
+		} else if (
+			line[current_move_i].branches &&
+			line[current_move_i].branches?.some( (m) => m.moveSan === chess_move.san )
+		) {
+			console.log( 'found branch: ' + chess_move.san );
 			result = 'branch';
 		} else {
 			result = 'wrong';
@@ -193,7 +201,7 @@
 
 	// find allowed piece destinations via chess.js logic.
 	// GPL3 code from lichess-org/chessground-examples/src/utils.ts.
-	function toDests(chess) {
+	function toDests(chess: Chess) {
 		const dests = new Map();
 		const squares = [
 		  'a8', 'b8', 'c8', 'd8', 'e8', 'f8', 'g8', 'h8',
@@ -206,7 +214,7 @@
 		  'a1', 'b1', 'c1', 'd1', 'e1', 'f1', 'g1', 'h1'
 		];
 		squares.forEach(s => {
-			const ms = chess.moves({square: s, verbose: true});
+			const ms = chess.moves({square: s as any, verbose: true});
 			if (ms.length) dests.set(s, ms.map(m => m.to));
 		});
 		return dests;
@@ -214,7 +222,7 @@
 
 	// turn square key (e.g. e4) to relative px position on the board.
 	// expects valid input, returns center of the square
-	function keyToRelPos( key ) {
+	function keyToRelPos( key: any ): [number, number] {
 		const square_side = container.clientWidth / 8;
 		const x = ( key.charCodeAt(0) - 97 + 0.5 ) * square_side;
 		const y = ( 8 - key.charAt(1) + 0.5 ) * square_side;

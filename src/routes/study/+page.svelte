@@ -52,6 +52,7 @@
 	let due_ix: number[] = [];
 	let line_source_name: string | null = null;
 
+	let lastPosition: {line: Move[], moveIx: number, show: boolean} = {line: [], moveIx: -1, show: false};
 
 	// MoveSheet logic: TODO move pair_moves and move_pairs* into lib/MoveSheet.svelte (and simplify)
 	function pair_moves( line: Move[] ) {
@@ -65,6 +66,33 @@
 	$: move_pairs_to_display = !line || last_move_ix == -1 && line[0].ownMove ? []
 	                           : move_pairs.slice(0, Math.ceil(last_move_ix/2)+1 );
 
+	function togglePreviousPosition() {
+		const tempLine = line;
+		line = lastPosition.line;
+		lastPosition.line = tempLine; 
+
+		if (!lastPosition.show) {
+			studyBoard.setViewOnly();
+			start_move_ix = lastPosition.moveIx;
+			lastPosition.moveIx = last_move_ix;
+			last_move_ix = Math.max(-1, start_move_ix - 2);
+		} else {
+			studyBoard.setViewOnly(false);
+			last_move_ix = lastPosition.moveIx;
+			lastPosition.moveIx = start_move_ix;
+			start_move_ix = last_move_ix === -1 ? last_move_ix + 1 : last_move_ix + 2;
+		}
+
+		lastPosition.show = !lastPosition.show;
+	}
+
+	function openOnLichess() {
+		let movesForUrl = line.map( m => m.moveSan ).join('_');
+		let color = line[0].ownMove ? 'white' : 'black';
+		let ply = color === 'white' && last_move_ix === -1 ? 0 : last_move_ix + 2;
+		let url = `https://lichess.org/analysis/pgn/${movesForUrl}?color=${color}#${ply}`;
+		window.open(url);
+	};
 
 	let nextline_promise: Promise<void>;
 	async function studyNextLine( last_line_move_ids: number[] = [] ) {
@@ -107,6 +135,9 @@
 			last_move_ix = e.detail.move_ix;
 			num_wrongs_this_move = 0;
 			played_branches.clear();
+
+			lastPosition.line = line;
+			lastPosition.moveIx = e.detail.move_ix;
 		} else if ( e.detail.result === 'branch' ) {
 			played_branches.add( e.detail.guess );
 		} else if ( e.detail.result === 'wrong' ) {
@@ -239,21 +270,48 @@
 						{/await}
 					</div>
 					<StudyBoard {line} {start_move_ix} on:move={onMove} on:lineFinished={lineFinished} bind:this={studyBoard} />
-					{#if num_wrongs_this_move >= 2 }
-						<button
-							class="cdbutton show_answer"
-							title="Show the right move"
-							transition:fade on:click={()=>{studyBoard.showAnswer()}} 
-						>Show answer</button>
-					{/if}
-					{#if line && line.slice(last_move_ix+1).length > 0 && last_move_ix >= Math.max(...due_ix)}
+					
+					<div style="display: flex; justify-content: space-between; margin-top: 12px;">
+						{#if lastPosition.line.length > 0}
+							<button 
+								class="cdbutton prev_position"
+								title="Show previous position"
+								on:click={togglePreviousPosition}
+							>
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" class={"last-position" + (lastPosition.show ? " inverted" : "")}>
+								<path fill="currentColor" d="M11.53 6.47a.75.75 0 0 1 0 1.06l-3.72 3.72H18a.75.75 0 0 1 0 1.5H7.81l3.72 3.72a.75.75 0 1 1-1.06 1.06l-5-5a.75.75 0 0 1 0-1.06l5-5a.75.75 0 0 1 1.06 0"/>
+							</svg>
+							{#if !lastPosition.show}Back{/if}
+							{#if lastPosition.show}Forward{/if}
+							</button>
+						{/if}
+
+						{#if num_wrongs_this_move >= 2 }
+							<button
+								class="cdbutton show_answer"
+								title="Show the right move"
+								transition:fade on:click={()=>{studyBoard.showAnswer()}} 
+							>Show answer</button>
+						{/if}
+						{#if line && line.slice(last_move_ix+1).length > 0 && last_move_ix >= Math.max(...due_ix)}
+							<button 
+								class="cdbutton skip_to_end"
+								title="All due moves are reviewed, skip the end of this line"
+								transition:fade
+								on:click|once={()=>studyNextLine(line.map(m=>m.id))}
+							>Skip to end</button>
+						{/if}
+						
 						<button 
-							class="cdbutton skip_to_end"
-							title="All due moves are reviewed, skip the end of this line"
-							transition:fade
-							on:click|once={()=>studyNextLine(line.map(m=>m.id))}
-						>Skip to end</button>
-					{/if}
+							class="cdbutton analyze_external"
+							title="Analyze on Lichess"
+							on:click={openOnLichess}
+						>Lichess
+						<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+							<path fill="none" stroke="#800020" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+						</svg>
+						</button>
+					</div>
 				</div>
 			{/if}
 		</div>
@@ -298,15 +356,24 @@
 	.branch_text {
 		text-align:center;
 	}
-
-	.show_answer, .skip_to_end {
-		position:absolute;
-		margin-top:6px;
+	.prev_position, .analyze_external{
+		color: #800020;
+		border:none;
+		display:flex;
+		align-items:center;
+		gap: 4px;
+		background-color: transparent;
+		padding-inline: 0;
 	}
-	.show_answer {
-		left:0;
+	.cdbutton:only-child {
+		margin-left: auto;
 	}
-	.skip_to_end {
-		right:0;
+	.inverted {
+		transform: rotate(180deg);
+		transform-origin: center;
+	}
+	.last-position {
+		transition: transform 220ms cubic-bezier(.2,.8,.2,1);
+		will-change: transform;
 	}
 </style>
