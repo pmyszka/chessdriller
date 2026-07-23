@@ -7,5 +7,7 @@ services:
     volumes:
       - ./prisma:/code/prisma
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
