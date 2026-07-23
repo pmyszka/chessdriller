@@ -39,10 +39,12 @@ docker:
 docker-run:
 	docker compose up -d --build
 
-docker-push: docker
+docker-push:
 ifeq ($(strip $(REGISTRY)),)
 	$(error REGISTRY is not set. Usage: make docker-push REGISTRY=registry.example.com)
 endif
+	@docker image inspect $(IMAGE_NAME):$(VERSION) >/dev/null 2>&1 || \
+		{ echo "Error: $(IMAGE_NAME):$(VERSION) not found locally. Run 'make docker IMAGE_NAME=$(IMAGE_NAME) VERSION=$(VERSION)' first."; exit 1; }
 	docker tag $(IMAGE_NAME):$(VERSION) $(REGISTRY)/$(IMAGE_NAME):$(VERSION)
 	docker tag $(IMAGE_NAME):latest $(REGISTRY)/$(IMAGE_NAME):latest
 	docker push $(REGISTRY)/$(IMAGE_NAME):$(VERSION)
